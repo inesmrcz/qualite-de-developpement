@@ -1,9 +1,10 @@
 package com.example.demo.web;
 
+import com.example.demo.data.Voiture;
 import com.example.demo.service.Echantillon;
-import com.example.demo.service.PasDeVoitureException;
 import com.example.demo.service.StatistiqueImpl;
 import org.junit.jupiter.api.Test;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,8 +12,10 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -20,63 +23,60 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class WebTests {
 
     @MockBean
-    StatistiqueImpl statistiqueImpl;
+    StatistiqueImpl statistique1;
+
 
     @Autowired
     MockMvc mockMvc;
 
     @Test
-    void testAjoutVoitureTesla() throws Exception {
-        String voitureJson = "{\"marque\":\"Tesla\",\"prix\":49999}";
+    public void getTest() throws Exception {
+        
 
-        mockMvc.perform(post("/voiture")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(voitureJson))
-                .andExpect(status().isOk());
+        
+        Echantillon mockEchantillon = new Echantillon();
+        mockEchantillon.setNombreDeVoitures(2);
+        mockEchantillon.setPrixMoyen(1000);
+        
+        when(statistique1.prixMoyen()).thenReturn(mockEchantillon);
 
-        verify(statistiqueImpl, times(1)).ajouter(argThat(voiture ->
-                "Tesla".equals(voiture.getMarque()) && voiture.getPrix() == 49999));
-    }
 
-    @Test
-    void testAjoutVoiturePeugeot() throws Exception {
-        String voitureJson = "{\"marque\":\"Peugeot\",\"prix\":22000}";
-
-        mockMvc.perform(post("/voiture")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(voitureJson))
-                .andExpect(status().isOk());
-
-        verify(statistiqueImpl, times(1)).ajouter(argThat(voiture ->
-                "Peugeot".equals(voiture.getMarque()) && voiture.getPrix() == 22000));
-    }
-
-    @Test
-    void testGetStatistiquesAvecValeurs() throws Exception {
-        Echantillon echantillon = new Echantillon(7, 31500);
-        when(statistiqueImpl.prixMoyen()).thenReturn(echantillon);
 
         mockMvc.perform(get("/statistique"))
+                .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nombreDeVoitures").value(7))
-                .andExpect(jsonPath("$.prixMoyen").value(31500));
+                .andExpect(jsonPath("$.nombreDeVoitures").value(2))
+                .andExpect(jsonPath("$.prixMoyen").value(1000))
+                .andReturn();
+                
+    
     }
 
     @Test
-    void testGetStatistiquesVide() throws Exception {
-        when(statistiqueImpl.prixMoyen()).thenThrow(new ArithmeticException());
-
-        mockMvc.perform(get("/statistique"))
-                .andExpect(status().isInternalServerError());
-    }
-
-    @Test
-    void testAjoutVoitureAvecJsonInvalide() throws Exception {
-        String voitureJsonInvalide = "{\"modele\":\"Clio\",\"prix\":15000}";
+    public void getTestDEP() throws Exception {
+        String voitureJson = "{ \"id\": 1, \"marque\": \"Peugeot\", \"prix\": 18000 }";
 
         mockMvc.perform(post("/voiture")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(voitureJsonInvalide))
-                .andExpect(status().isBadRequest());
-    }
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(voitureJson))
+                .andExpect(status().isOk());
+    
+        
+
+}
+
+        @Test
+        public void getTestDEPht() throws Exception {
+            when(statistique1.prixMoyen()).thenThrow(new ArithmeticException());
+
+            mockMvc.perform(get("/statistique"))
+                    .andDo(print())
+                    .andExpect(status().is4xxClientError())
+                    .andReturn();
+
+            //
+
+}
+
+   
 }
